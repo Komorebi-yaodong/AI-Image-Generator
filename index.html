@@ -2,28 +2,52 @@
 <html>
 
 <head>
-    <title>AI Draw - Text to Image</title>
+    <title>AI绘画 - 文本生成图像</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
+            --primary-color: #7952b3;
+            --primary-color-hover: #61408c;
+            --primary-color-light: rgba(121, 82, 179, 0.1);
+            --primary-rgb: 121, 82, 179;
+
+            --text-color: #212529;
+            --text-muted: #6c757d;
+            --text-light: #f8f9fa;
+            --border-color: #ced4da;
+            --input-bg: #fff;
+            --bg-light: #f8f9fa;
+            --bg-body: #f0f2f5;
+            --danger-color: #dc3545;
+            --danger-bg: #f8d7da;
+            --danger-border: #f5c6cb;
+
+
+            --border-radius-sm: 4px;
+            --border-radius-md: 6px;
+            --border-radius-lg: 8px;
+
             --input-bar-height: 110px;
             --input-bar-height-mobile: 150px;
         }
 
         ::-webkit-scrollbar {
-            width: 5px;
+            width: 6px;
             background: transparent;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #ccc;
-            border-radius: 5px;
+            background: #bbb;
+            border-radius: var(--border-radius-md);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #999;
         }
 
         html {
             scrollbar-width: thin;
-            scrollbar-color: #ccc transparent;
+            scrollbar-color: #bbb transparent;
             -ms-overflow-style: none;
         }
 
@@ -31,13 +55,15 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f8f9fa;
-            color: #333;
+            background-color: var(--bg-body);
+            color: var(--text-color);
             line-height: 1.6;
             min-height: 100vh;
             box-sizing: border-box;
-            padding-top: 20px;
+            padding-top: 25px;
             padding-bottom: var(--input-bar-height);
+            transition: padding-bottom 0.3s ease-out;
+            overflow-x: hidden;
         }
 
         #input-container {
@@ -45,15 +71,15 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            background-color: #ffffff;
+            background-color: var(--input-bg);
             padding: 15px 20px;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 -3px 15px rgba(0, 0, 0, 0.08);
+            border-top: 1px solid #e0e0e0;
             z-index: 999;
             display: flex;
             flex-direction: column;
             gap: 10px;
             box-sizing: border-box;
-            min-height: calc(var(--input-bar-height) - 30px);
         }
 
         .input-row {
@@ -62,195 +88,200 @@
             gap: 15px;
             width: 100%;
         }
-
         .input-row-1 {
             gap: 10px;
+            align-items: stretch;
         }
 
         #prompt-input {
             flex-grow: 1;
-            padding: 10px 12px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 0.95em;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-md);
+            font-size: 1em;
+            background-color: var(--input-bg);
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        #prompt-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem var(--primary-color-light);
+            outline: 0;
         }
 
         #send-button {
-            padding: 10px 25px;
-            background-color: #8a2be2;
+            padding: 12px 28px;
+            background-color: var(--primary-color);
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: var(--border-radius-md);
             cursor: pointer;
-            font-size: 0.95em;
+            font-size: 1em;
             font-weight: 500;
             transition: background-color 0.2s ease;
             flex-shrink: 0;
         }
-
         #send-button:hover {
-            background-color: #7324b8;
+            background-color: var(--primary-color-hover);
         }
-
         #send-button:disabled {
-            background-color: #cccccc;
+            background-color: #adb5bd;
+            color: var(--text-muted);
             cursor: not-allowed;
         }
 
         .input-row-2 {
             flex-wrap: wrap;
+            align-items: flex-end;
         }
 
         .control-group {
             display: flex;
             flex-direction: column;
-            gap: 3px;
+            gap: 5px;
             flex: 1 1 auto;
             min-width: 120px;
         }
-
         .control-group label,
         .enhance-label {
-            font-size: 0.8em;
-            color: #555;
+            font-size: 0.85em;
+            color: var(--text-muted);
             font-weight: 500;
         }
-
-        .control-group select {
-            padding: 8px 10px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+        .control-group select,
+        #custom-width-input, #custom-height-input {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-md);
             font-size: 0.9em;
-            background-color: #fff;
+            background-color: var(--input-bg);
+            width: 100%;
+            box-sizing: border-box;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
         }
+        .control-group select:focus,
+        #custom-width-input:focus, #custom-height-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem var(--primary-color-light);
+            outline: 0;
+        }
+
+        #custom-dimensions-wrapper {
+            width: 100%;
+            padding-top: 5px;
+        }
+        .input-row-custom-dims {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+        }
+        .input-row-custom-dims .control-group {
+            flex: 1;
+        }
+
 
         .enhance-group {
             display: flex;
             align-items: center;
-            gap: 5px;
-            padding-top: 18px;
+            gap: 8px;
+            padding-top: 22px;
             flex-shrink: 0;
         }
-
         #enhance-checkbox {
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
             cursor: pointer;
+            accent-color: var(--primary-color);
         }
 
         #image-display-area {
             width: 100%;
-            max-width: 1200px;
+            max-width: 100%;
             margin: 0 auto;
-            padding: 0 15px;
+            padding: 0 10px;
             box-sizing: border-box;
-            min-height: 300px;
+            height: calc(100vh - var(--input-bar-height) - 70px);
             display: flex;
             justify-content: center;
-            align-items: flex-start;
+            align-items: center;
+            position: relative;
+            perspective: 1200px;
+            perspective-origin: 50% 40%;
+            overflow: hidden;
         }
-
         .placeholder-text {
-            color: #aaa;
+            color: #999;
             font-style: italic;
             text-align: center;
-            margin-top: 50px;
-            padding: 20px;
+            padding: 25px;
             width: 100%;
-        }
-
-        .image-grid {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 15px;
-            width: 100%;
+            font-size: 0.95em;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
 
         .image-container {
-            position: relative;
-            border-radius: 8px;
+            position: absolute;
+            border-radius: var(--border-radius-lg);
             overflow: hidden;
-            aspect-ratio: 832 / 1216;
-            flex: 1 1 calc(33.333% - 20px);
-            max-width: calc(33.333% - 20px);
-            min-width: 200px;
-            cursor: default;
+            cursor: pointer;
             background-color: #e9ecef;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            will-change: transform, opacity, width, height, z-index;
+            backface-visibility: hidden;
         }
 
         .image-container img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
             display: block;
             opacity: 0;
             transition: opacity 0.5s ease-in-out;
-            position: absolute;
-            top: 0;
-            left: 0;
-            cursor: pointer;
         }
-
         .image-container img.loaded {
             opacity: 1;
-            position: static;
-            z-index: 1;
+            cursor: pointer;
         }
-
         .image-container img.error-state {
             display: none;
         }
-
         .image-label {
             position: absolute;
-            bottom: 5px;
-            left: 5px;
-            background: rgba(0, 0, 0, 0.6);
-            color: white;
-            padding: 2px 5px;
-            border-radius: 4px;
-            font-size: 9px;
+            bottom: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, 0.65);
+            color: var(--text-light);
+            padding: 3px 7px;
+            border-radius: var(--border-radius-sm);
+            font-size: 10px;
             opacity: 0;
-            transition: opacity 0.2s;
+            transition: opacity 0.2s ease;
             z-index: 3;
             pointer-events: none;
         }
-
-        .image-container:hover .image-label {
+        .image-container.is-front .image-label {
             opacity: 1;
         }
 
         .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #8a2be2;
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid var(--primary-color);
             border-radius: 50%;
-            width: 35px;
-            height: 35px;
+            width: 40px;
+            height: 40px;
             animation: spin 1s linear infinite;
             z-index: 2;
             display: block;
             margin-bottom: 5px;
         }
-
-        .loader.hidden {
-            display: none;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
+        .loader.hidden { display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         .modal {
             display: none;
@@ -259,186 +290,144 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(30, 30, 30, 0.92);
             z-index: 1000;
             justify-content: center;
             align-items: center;
         }
-
-        .modal.active {
-            display: flex;
-        }
-
+        .modal.active { display: flex; }
         .modal-content {
             position: relative;
             max-width: 90%;
             max-height: 90vh;
         }
-
         .modal-content img {
             display: block;
             max-width: 100%;
             max-height: 90vh;
             object-fit: contain;
-            border-radius: 4px;
+            border-radius: var(--border-radius-sm);
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
         }
-
         .modal-close {
             position: absolute;
             top: 15px;
-            right: 25px;
-            color: white;
-            font-size: 35px;
+            right: 20px;
+            color: #ccc;
+            font-size: 40px;
             cursor: pointer;
             z-index: 1001;
             line-height: 1;
+            transition: color 0.2s ease;
         }
-
+        .modal-close:hover { color: white; }
         .modal-nav {
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            color: white;
-            font-size: 40px;
+            color: #ccc;
+            font-size: 48px;
             cursor: pointer;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.3s;
+            transition: background 0.3s, color 0.3s;
             z-index: 1002;
             user-select: none;
-            width: 40px;
-            height: 40px;
-            line-height: 40px;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
         }
-
         .modal-nav:hover {
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
         }
-
-        .modal-prev {
-            left: 20px;
-        }
-
-        .modal-next {
-            right: 20px;
-        }
+        .modal-prev { left: 20px; }
+        .modal-next { right: 20px; }
 
         .error-display {
-            color: #721c24;
-            background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
-            padding: 8px 12px;
-            border-radius: 4px;
+            color: var(--danger-color);
+            background-color: var(--danger-bg);
+            border: 1px solid var(--danger-border);
+            padding: 10px 15px;
+            border-radius: var(--border-radius-md);
             font-size: 0.9em;
             text-align: center;
-            max-width: 80%;
+            max-width: 85%;
             word-wrap: break-word;
             z-index: 2;
-            margin-top: 5px;
+            margin-top: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-
         .retry-button {
-            background-color: #6f42c1;
+            background-color: var(--primary-color);
             color: white;
             border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
+            padding: 6px 12px;
+            border-radius: var(--border-radius-md);
             cursor: pointer;
-            font-size: 0.85em;
-            margin-top: 8px;
+            font-size: 0.88em;
+            margin-top: 10px;
             transition: background-color 0.2s;
             z-index: 2;
+            font-weight: 500;
         }
-
-        .retry-button:hover {
-            background-color: #5a3d9e;
-        }
-
-        .retry-button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
+        .retry-button:hover { background-color: var(--primary-color-hover); }
+        .retry-button:disabled { background-color: #cccccc; cursor: not-allowed; }
 
         #custom-context-menu {
             position: absolute;
             display: none;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.15);
-            border-radius: 4px;
-            padding: 5px 0;
+            background-color: var(--input-bg);
+            border: 1px solid #ddd;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-radius: var(--border-radius-md);
+            padding: 6px 0;
             z-index: 1001;
-            min-width: 150px;
+            min-width: 160px;
         }
-
         .context-menu-item {
-            padding: 8px 15px;
+            padding: 10px 18px;
             cursor: pointer;
             font-size: 0.9em;
-            color: #333;
+            color: var(--text-color);
+            transition: background-color 0.15s ease;
         }
-
         .context-menu-item:hover {
-            background-color: #eee;
+            background-color: var(--bg-light);
+            color: var(--primary-color);
         }
 
         @media (max-width: 768px) {
-            body {
-                padding-bottom: var(--input-bar-height-mobile);
-            }
-
-            #input-container {
-                min-height: calc(var(--input-bar-height-mobile) - 30px);
-            }
-
-            .input-row-2 {
-                gap: 10px;
-            }
-
-            .control-group {
-                min-width: 100px;
-            }
-
-            .image-container {
-                flex-basis: calc(50% - 10px);
-                max-width: calc(50% - 10px);
+            body { padding-bottom: var(--input-bar-height-mobile); }
+            #input-container { gap: 12px; }
+            .input-row-2 { gap: 12px; }
+            .control-group { min-width: 100px; }
+            .enhance-group { padding-top: 5px; justify-content: flex-start; }
+            #image-display-area {
+                perspective-origin: 50% 45%;
             }
         }
 
         @media (max-width: 480px) {
+            .input-row-1 { flex-wrap: wrap; }
+            .input-row-1 #prompt-input { flex-basis: 100%; margin-bottom: 10px; }
+            .input-row-1 #send-button { flex-basis: 100%; padding: 12px; }
 
-            .input-row-1,
-            .input-row-2 {
-                flex-wrap: wrap;
-            }
-
-            #prompt-input {
-                flex-basis: 100%;
-                margin-bottom: 5px;
-            }
-
-            #send-button {
-                flex-basis: 100%;
-            }
-
-            .control-group {
-                flex-basis: calc(50% - 10px);
-                min-width: 0;
-            }
-
-            .enhance-group {
-                flex-basis: 100%;
-                padding-top: 5px;
+            .input-row-2 { flex-direction: column; align-items: stretch; gap: 10px; }
+            .input-row-2 .control-group { width: 100%; min-width: unset; }
+            .input-row-2 .enhance-group {
+                width: 100%;
+                padding-top: 10px;
                 justify-content: center;
             }
-
-            .image-container {
-                flex-basis: calc(100% - 10px);
-                max-width: calc(100% - 10px);
+            .input-row-custom-dims { flex-direction: column; gap: 10px;}
+            #image-display-area {
+                perspective-origin: 50% 50%;
+                height: calc(100vh - var(--input-bar-height-mobile) - 60px);
             }
         }
     </style>
@@ -448,55 +437,77 @@
 
     <div id="image-display-area">
         <div class="placeholder-text">
-            Enter a prompt, select your options below, and click "Send" to generate images.
-            <br>Images will appear here. Right-click an image for options.
+            在下方输入提示词，选择您的选项，然后点击"发送"生成图像。
+            <br>图像将显示在此处。右键点击最前方的图像可查看选项。
         </div>
     </div>
 
     <div class="modal">
-        <span class="modal-close">&times;</span>
-        <div class="modal-nav modal-prev">&#10094;</div>
-        <div class="modal-nav modal-next">&#10095;</div>
+        <span class="modal-close">×</span>
+        <div class="modal-nav modal-prev">❮</div>
+        <div class="modal-nav modal-next">❯</div>
         <div class="modal-content">
-            <img src="" alt="Preview">
+            <img src="" alt="预览">
         </div>
     </div>
 
     <div id="input-container">
         <div class="input-row input-row-1">
-            <input type="text" id="prompt-input" placeholder="Enter your image prompt...">
-            <button id="send-button">Send</button>
+            <input type="text" id="prompt-input" placeholder="输入您的图像提示词...">
+            <button id="send-button">发送</button>
         </div>
         <div class="input-row input-row-2">
             <div class="control-group">
-                <label for="model-select">Model:</label>
+                <label for="model-select">模型:</label>
                 <select id="model-select">
                     <option value="flux" selected>Flux</option>
                     <option value="turbo">Turbo</option>
                 </select>
             </div>
             <div class="control-group">
-                <label for="dimension-select">Dimensions:</label>
+                <label for="dimension-select">尺寸:</label>
                 <select id="dimension-select">
-                    <option value="832x1216" selected>Portrait (832x1216)</option>
-                    <option value="1024x1024">Square (1024x1024)</option>
-                    <option value="1216x832">Landscape (1216x832)</option>
+                    <option value="512x512">方形 (512x512 - 经典SD)</option>
+                    <option value="768x768">方形 (768x768 - 标准SD)</option>
+                    <option value="1024x1024">方形 (1024x1024 - 通用)</option>
+                    <option value="512x768">竖向 (512x768 - 2:3)</option>
+                    <option value="768x1024">竖向 (768x1024 - 3:4)</option>
+                    <option value="720x1280">竖向 (720x1280 - 9:16)</option>
+                    <option value="832x1216" selected>竖向 (832x1216 肖像)</option>
+                    <option value="768x512">横向 (768x512 - 3:2)</option>
+                    <option value="1024x768">横向 (1024x768 - 4:3)</option>
+                    <option value="1280x720">横向 (1280x720 - 16:9)</option>
+                    <option value="1216x832">横向 (1216x832 - 风景)</option>
+                    <option value="custom">自定义...</option>
                 </select>
             </div>
             <div class="enhance-group">
                 <input type="checkbox" id="enhance-checkbox" checked>
-                <label for="enhance-checkbox" class="enhance-label">Enhance</label>
+                <label for="enhance-checkbox" class="enhance-label">增强效果</label>
+            </div>
+        </div>
+        <div id="custom-dimensions-wrapper" style="display: none;">
+             <div class="input-row input-row-custom-dims">
+                <div class="control-group">
+                    <label for="custom-width-input">宽度 (64-2048, 8的倍数):</label>
+                    <input type="number" id="custom-width-input" min="64" max="2048" step="8" placeholder="512">
+                </div>
+                <div class="control-group">
+                    <label for="custom-height-input">高度 (64-2048, 8的倍数):</label>
+                    <input type="number" id="custom-height-input" min="64" max="2048" step="8" placeholder="768">
+                </div>
             </div>
         </div>
     </div>
 
     <div id="custom-context-menu">
-        <div class="context-menu-item" data-action="copy">Copy Image</div>
-        <div class="context-menu-item" data-action="download">Download Image</div>
+        <div class="context-menu-item" data-action="copy">复制图像</div>
+        <div class="context-menu-item" data-action="download">下载图像</div>
     </div>
 
     <script>
         const imageDisplayArea = document.getElementById('image-display-area');
+        const placeholderText = imageDisplayArea.querySelector('.placeholder-text');
         const promptInput = document.getElementById('prompt-input');
         const modelSelect = document.getElementById('model-select');
         const dimensionSelect = document.getElementById('dimension-select');
@@ -508,12 +519,34 @@
         const prevBtn = modal.querySelector('.modal-prev');
         const nextBtn = modal.querySelector('.modal-next');
         const contextMenu = document.getElementById('custom-context-menu');
+        const customDimensionsWrapper = document.getElementById('custom-dimensions-wrapper');
+        const customWidthInput = document.getElementById('custom-width-input');
+        const customHeightInput = document.getElementById('custom-height-input');
 
         let currentModalIndex = 0;
         let imagesData = [];
         let currentPrompt = '';
         const NOLOGO = true;
         const NUM_IMAGES = 3;
+
+        let cardElements = [];
+        let currentCardOrder = Array.from({ length: NUM_IMAGES }, (_, i) => i);
+        let isAnimating = false;
+
+
+        function adjustBodyPadding() {
+            const inputContainer = document.getElementById('input-container');
+            if (!inputContainer) return;
+            inputContainer.style.visibility = 'hidden';
+            inputContainer.style.position = 'absolute';
+            const inputContainerHeight = inputContainer.offsetHeight;
+            inputContainer.style.visibility = 'visible';
+            inputContainer.style.position = 'fixed';
+            document.body.style.paddingBottom = `${inputContainerHeight}px`;
+            if (imagesData.length > 0 && cardElements.length > 0) {
+                updateCardStackView(true);
+            }
+        }
 
         function findOrUpdateImageData(index, data) {
             const existingIndex = imagesData.findIndex(item => item.index === index);
@@ -529,23 +562,286 @@
 
         function getSelectedDimensions() {
             const selectedValue = dimensionSelect.value;
-            const parts = selectedValue.split('x');
-            const width = parseInt(parts[0], 10);
-            const height = parseInt(parts[1], 10);
-            return { width, height };
+            if (selectedValue === 'custom') {
+                const width = parseInt(customWidthInput.value, 10);
+                const height = parseInt(customHeightInput.value, 10);
+                if (isNaN(width) || isNaN(height) || width < 64 || width > 2048 || height < 64 || height > 2048 || width % 8 !== 0 || height % 8 !== 0) {
+                    alert("自定义尺寸无效。宽度和高度必须是64到2048之间且为8的倍数的数字。");
+                    if (isNaN(width) || width < 64 || width > 2048 || width % 8 !== 0) customWidthInput.focus();
+                    else if (isNaN(height) || height < 64 || height > 2048 || height % 8 !== 0) customHeightInput.focus();
+                    return { error: true };
+                }
+                return { width, height };
+            } else {
+                const parts = selectedValue.split('x');
+                return { width: parseInt(parts[0], 10), height: parseInt(parts[1], 10) };
+            }
         }
+
+        function initializeCardElements() {
+            imageDisplayArea.innerHTML = '';
+            imageDisplayArea.appendChild(placeholderText);
+            placeholderText.style.display = 'block';
+
+            cardElements = [];
+            for (let i = 0; i < NUM_IMAGES; i++) {
+                const container = document.createElement('div');
+                container.className = 'image-container';
+                container.style.display = 'none';
+                container.dataset.cardSlotIndex = i;
+
+                const img = document.createElement('img');
+                img.alt = "AI Generated Image";
+
+                const loader = document.createElement('div');
+                loader.className = 'loader hidden';
+
+                const label = document.createElement('div');
+                label.className = 'image-label';
+
+                container.appendChild(img);
+                container.appendChild(loader);
+                container.appendChild(label);
+                imageDisplayArea.appendChild(container);
+                cardElements.push(container);
+
+                img.onload = () => handleImageLoad(img);
+                img.onerror = () => handleImageError(img);
+
+                container.addEventListener('click', function(event) {
+                    if (isAnimating) return;
+
+                    const clickedVisualSlotIndex = parseInt(this.dataset.cardSlotIndex, 10);
+
+                    const imageDataOriginalIndexStr = this.dataset.imageDataOriginalIndex;
+
+                    if (imageDataOriginalIndexStr === undefined) return;
+
+                    const imageDataOriginalIndex = parseInt(imageDataOriginalIndexStr, 10);
+                    if (isNaN(imageDataOriginalIndex) || !imagesData.find(d => d.index === imageDataOriginalIndex)) return;
+
+                    if (event.target.closest('.retry-button')) return;
+
+                    const currentImageData = imagesData.find(d => d.index === imageDataOriginalIndex);
+                    if (!currentImageData) return;
+
+                    if (clickedVisualSlotIndex === 0) {
+                        if (currentImageData.error !== true) {
+                            showImage(imageDataOriginalIndex);
+                        }
+                    } else {
+                        let newOrder;
+                        if (clickedVisualSlotIndex === 1) {
+                            newOrder = [currentCardOrder[1], currentCardOrder[2], currentCardOrder[0]];
+                            animateCardRotation(newOrder);
+                        } else if (clickedVisualSlotIndex === 2) {
+                            newOrder = [currentCardOrder[2], currentCardOrder[0], currentCardOrder[1]];
+                            animateCardRotation(newOrder);
+                        }
+                    }
+                });
+            }
+        }
+
+        function updateCardStackView(useDefaultTransitions = true) {
+            if (imagesData.length === 0 || cardElements.length === 0) {
+                placeholderText.style.display = 'block';
+                cardElements.forEach(card => card.style.display = 'none');
+                return;
+            }
+            placeholderText.style.display = 'none';
+
+            const areaWidth = imageDisplayArea.clientWidth;
+            const areaHeight = imageDisplayArea.clientHeight;
+
+            const frontImageOriginalIndex = currentCardOrder[0];
+            const frontImageData = imagesData.find(img => img.index === frontImageOriginalIndex);
+            const aspectRatio = (frontImageData && frontImageData.width && frontImageData.height) ?
+                                (frontImageData.width / frontImageData.height) : (3/4);
+
+            let frontCardBaseWidth = areaWidth * 0.4;
+            let frontCardBaseHeight = areaHeight * 0.7;
+
+            let frontCardWidth, frontCardHeight;
+            if (frontCardBaseWidth / aspectRatio > frontCardBaseHeight) {
+                frontCardHeight = frontCardBaseHeight;
+                frontCardWidth = frontCardHeight * aspectRatio;
+            } else {
+                frontCardWidth = frontCardBaseWidth;
+                frontCardHeight = frontCardWidth / aspectRatio;
+            }
+            frontCardWidth = Math.max(150, Math.min(frontCardWidth, areaWidth * 0.7));
+            frontCardHeight = frontCardWidth / aspectRatio;
+            if (frontCardHeight > areaHeight * 0.85) {
+                frontCardHeight = areaHeight * 0.85;
+                frontCardWidth = frontCardHeight * aspectRatio;
+            }
+
+            const backCardScale = 0.80;
+            const backCardWidth = frontCardWidth * backCardScale;
+            const backCardHeight = frontCardHeight * backCardScale;
+            const backCardOpacity = 0.9;
+
+            const xOffset = frontCardWidth * 0.50;
+            const zOffset = -Math.min(areaWidth * 0.10, frontCardWidth * 0.20);
+            const rotationAngle = 40;
+
+            const positions = [
+                { transform: `translate3d(0, 0, ${areaWidth * 0.05}px) scale(1)`, zIndex: 3, opacity: 1, width: frontCardWidth, height: frontCardHeight, isFront: true },
+                { transform: `translate3d(-${xOffset}px, 0, ${zOffset}px) rotateY(${rotationAngle}deg) scale(${backCardScale}) translateZ(0)`, zIndex: 2, opacity: backCardOpacity, width: backCardWidth,  height: backCardHeight, isFront: false },
+                { transform: `translate3d(${xOffset}px, 0, ${zOffset}px) rotateY(-${rotationAngle}deg) scale(${backCardScale}) translateZ(0)`, zIndex: 1, opacity: backCardOpacity, width: backCardWidth,  height: backCardHeight, isFront: false }
+            ];
+
+            for (let visualSlotIdx = 0; visualSlotIdx < NUM_IMAGES; visualSlotIdx++) {
+                const cardElement = cardElements.find(el => parseInt(el.dataset.cardSlotIndex, 10) === visualSlotIdx);
+
+                if (!cardElement) {
+                    continue;
+                }
+
+                if (!useDefaultTransitions) {
+                    cardElement.style.transition = 'none';
+                } else {
+                     if (cardElement.style.transition === 'none') {
+                         cardElement.style.transition = '';
+                    }
+                }
+
+                const imageDataOriginalIndex = currentCardOrder[visualSlotIdx];
+                const imgData = imagesData.find(d => d.index === imageDataOriginalIndex);
+                const posStyle = positions[visualSlotIdx];
+
+                cardElement.style.width = `${posStyle.width}px`;
+                cardElement.style.height = `${posStyle.height}px`;
+                cardElement.style.transform = posStyle.transform;
+                cardElement.style.zIndex = posStyle.zIndex;
+                cardElement.style.opacity = posStyle.opacity;
+                cardElement.classList.toggle('is-front', posStyle.isFront);
+                cardElement.dataset.imageDataOriginalIndex = imageDataOriginalIndex;
+
+                const imgTag = cardElement.querySelector('img');
+                const loader = cardElement.querySelector('.loader');
+                const label = cardElement.querySelector('.image-label');
+
+                cardElement.querySelectorAll('.error-display, .retry-button').forEach(el => el.remove());
+
+                if (imgData) {
+                    cardElement.style.display = 'flex';
+                    imgTag.dataset.index = imgData.index;
+
+                    if (imgTag.src !== imgData.src || imgData.error === null || !imgTag.getAttribute('src')) {
+                        imgTag.src = '';
+                        imgTag.classList.remove('loaded', 'error-state');
+                        loader.classList.remove('hidden');
+                        imgTag.src = imgData.src;
+                    }
+
+                    imgTag.alt = `AI Image ${imgData.index + 1} - ${imgData.prompt}`;
+                    label.textContent = `Seed: ${imgData.seed}`;
+
+                    if (imgData.error) {
+                        handleImageError(imgTag);
+                    } else if (imgTag.complete && imgTag.naturalHeight > 0 && imgTag.src && imgTag.src !== window.location.href) {
+                        handleImageLoad(imgTag);
+                    }
+                } else {
+                    cardElement.style.display = 'none';
+                }
+            }
+            if (!useDefaultTransitions) {
+                requestAnimationFrame(() => {
+                    cardElements.forEach(card => card.style.transition = '');
+                });
+            }
+        }
+
+        function animateCardRotation(newOrder) {
+            if (isAnimating) return;
+            isAnimating = true;
+
+             const areaWidth = imageDisplayArea.clientWidth;
+            const areaHeight = imageDisplayArea.clientHeight;
+
+            const newFrontImageData = imagesData.find(img => img.index === newOrder[0]);
+            const aspectRatio = (newFrontImageData && newFrontImageData.width && newFrontImageData.height) ?
+                                (newFrontImageData.width / newFrontImageData.height) : (3/4);
+
+            let frontCardBaseWidth = areaWidth * 0.4;
+            let frontCardBaseHeight = areaHeight * 0.7;
+
+            let frontCardWidth, frontCardHeight;
+            if (frontCardBaseWidth / aspectRatio > frontCardBaseHeight) {
+                frontCardHeight = frontCardBaseHeight;
+                frontCardWidth = frontCardHeight * aspectRatio;
+            } else {
+                frontCardWidth = frontCardBaseWidth;
+                frontCardHeight = frontCardWidth / aspectRatio;
+            }
+            frontCardWidth = Math.max(150, Math.min(frontCardWidth, areaWidth * 0.7));
+            frontCardHeight = frontCardWidth / aspectRatio;
+            if (frontCardHeight > areaHeight * 0.85) {
+                frontCardHeight = areaHeight * 0.85;
+                frontCardWidth = frontCardHeight * aspectRatio;
+            }
+
+            const backCardScale = 0.80;
+            const backCardWidth = frontCardWidth * backCardScale;
+            const backCardHeight = frontCardHeight * backCardScale;
+            const backCardOpacity = 0.9;
+
+            const xOffset = frontCardWidth * 0.50;
+            const zOffset = -Math.min(areaWidth * 0.10, frontCardWidth * 0.20);
+            const rotationAngle = 40;
+
+            const positions = [
+                { transform: `translate3d(0, 0, ${areaWidth * 0.05}px) scale(1)`, zIndex: 3, opacity: 1, width: frontCardWidth, height: frontCardHeight, isFront: true },
+                { transform: `translate3d(-${xOffset}px, 0, ${zOffset}px) rotateY(${rotationAngle}deg) scale(${backCardScale}) translateZ(0)`, zIndex: 2, opacity: backCardOpacity, width: backCardWidth, height: backCardHeight, isFront: false },
+                { transform: `translate3d(${xOffset}px, 0, ${zOffset}px) rotateY(-${rotationAngle}deg) scale(${backCardScale}) translateZ(0)`, zIndex: 1, opacity: backCardOpacity, width: backCardWidth, height: backCardHeight, isFront: false }
+            ];
+
+            const cardElementToNewVisualSlotMap = new Map();
+            cardElements.forEach(card => {
+                const currentOriginalImageIdx = parseInt(card.dataset.imageDataOriginalIndex, 10);
+                const newVisualSlotForThisImage = newOrder.indexOf(currentOriginalImageIdx);
+                cardElementToNewVisualSlotMap.set(card, newVisualSlotForThisImage);
+            });
+
+            cardElements.forEach((card) => {
+                const newVisualSlot = cardElementToNewVisualSlotMap.get(card);
+                 if (newVisualSlot === undefined || newVisualSlot < 0) return;
+
+                const finalStyle = positions[newVisualSlot];
+
+                 card.style.zIndex = finalStyle.zIndex;
+
+                 card.style.transition = "transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.5s ease-in-out, width 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), height 0.6s cubic-bezier(0.25, 0.8, 0.25, 1)";
+                 card.style.transform = finalStyle.transform;
+                 card.style.opacity = finalStyle.opacity;
+                 card.style.width = `${finalStyle.width}px`;
+                 card.style.height = `${finalStyle.height}px`;
+                 card.classList.toggle('is-front', finalStyle.isFront);
+
+                 card.dataset.cardSlotIndex = newVisualSlot;
+             });
+
+             currentCardOrder = [...newOrder];
+
+             setTimeout(() => {
+                 isAnimating = false;
+                 cardElements.forEach(card => card.style.transition = '');
+                 updateCardStackView(false);
+             }, 600);
+         }
+
 
         function handleImageLoad(imgElement) {
             const container = imgElement.closest('.image-container');
             if (!container) return;
             const loader = container.querySelector('.loader');
-            const errorDisplay = container.querySelector('.error-display');
-            const retryButton = container.querySelector('.retry-button');
             const dataIndex = parseInt(imgElement.dataset.index, 10);
 
             if (loader) loader.classList.add('hidden');
-            if (errorDisplay) errorDisplay.remove();
-            if (retryButton) retryButton.remove();
+            container.querySelectorAll('.error-display, .retry-button').forEach(el => el.remove());
 
             imgElement.classList.remove('error-state');
             imgElement.classList.add('loaded');
@@ -553,26 +849,23 @@
             const dataEntry = imagesData.find(d => d.index === dataIndex);
             if (dataEntry) {
                 dataEntry.error = false;
-                dataEntry.src = imgElement.src;
-                findOrUpdateImageData(dataIndex, dataEntry); // Ensure update propagates
+                if (imgElement.src !== dataEntry.src) {
+                    dataEntry.src = imgElement.src;
+                }
             } else {
+                const { width: currentFallbackWidth = 1024, height: currentFallbackHeight = 1024 } = getSelectedDimensions();
                 findOrUpdateImageData(dataIndex, {
-                    src: imgElement.src,
-                    error: false,
-                    index: dataIndex,
-                    prompt: currentPrompt,
-                    seed: parseInt(imgElement.src.match(/seed=(\d+)/)?.[1] || '0', 10),
+                    src: imgElement.src, error: false, index: dataIndex, prompt: currentPrompt || "Unknown",
+                    seed: parseInt(imgElement.src.match(/seed=(\d+)/)?.[1] || Math.floor(Math.random() * 100000).toString(), 10),
                     model: imgElement.src.match(/model=([^&]+)/)?.[1] || modelSelect.value,
-                    width: parseInt(imgElement.src.match(/width=(\d+)/)?.[1] || dimensionSelect.value.split('x')[0], 10),
-                    height: parseInt(imgElement.src.match(/height=(\d+)/)?.[1] || dimensionSelect.value.split('x')[1], 10),
+                    width: parseInt(imgElement.src.match(/width=(\d+)/)?.[1] || currentFallbackWidth.toString(), 10),
+                    height: parseInt(imgElement.src.match(/height=(\d+)/)?.[1] || currentFallbackHeight.toString(), 10),
                     enhance: imgElement.src.includes('enhance=true')
                 });
             }
         }
 
-
         function handleImageError(imgElement) {
-            console.error('Failed to load image:', imgElement.src);
             const container = imgElement.closest('.image-container');
             if (!container) return;
             const loader = container.querySelector('.loader');
@@ -582,12 +875,12 @@
             container.querySelectorAll('.error-display, .retry-button').forEach(el => el.remove());
 
             const errorMsg = document.createElement('div');
-            errorMsg.textContent = 'Load Error';
+            errorMsg.textContent = '加载错误';
             errorMsg.className = 'error-display';
             container.appendChild(errorMsg);
 
             const retryBtn = document.createElement('button');
-            retryBtn.textContent = 'Retry';
+            retryBtn.textContent = '重试';
             retryBtn.className = 'retry-button';
             retryBtn.dataset.index = dataIndex;
             container.appendChild(retryBtn);
@@ -598,64 +891,73 @@
             const dataEntry = imagesData.find(d => d.index === dataIndex);
             if (dataEntry) {
                 dataEntry.error = true;
-                dataEntry.src = imgElement.src; // Store failed src
-                findOrUpdateImageData(dataIndex, dataEntry); // Ensure update propagates
             } else {
-                findOrUpdateImageData(dataIndex, { src: imgElement.src, error: true, index: dataIndex });
+                findOrUpdateImageData(dataIndex, { src: imgElement.src, error: true, index: dataIndex, prompt: "未知 (初始加载错误)" });
             }
         }
 
-        function retryImage(index) {
-            const imageData = imagesData.find(item => item.index === index);
-            const container = imageDisplayArea.querySelector(`.image-container[data-index="${index}"]`);
+        function retryImage(originalImageIndex) {
+            const imageData = imagesData.find(item => item.index === originalImageIndex);
+            const container = cardElements.find(card => parseInt(card.dataset.imageDataOriginalIndex) === originalImageIndex);
 
-            if (!imageData || !container) return;
-            if (!imageData.prompt || !imageData.width || !imageData.height || imageData.seed === undefined || imageData.seed === null || !imageData.model) {
-                alert("Cannot retry: image data is incomplete.");
+
+            if (!imageData || !container) {
+                console.error("Cannot retry: imageData or container not found for index", originalImageIndex);
+                return;
+            }
+             if (!imageData.prompt || !imageData.width || !imageData.height || imageData.seed === undefined || !imageData.model) {
+                alert("无法重试：图像数据不完整。");
                 return;
             }
 
             const imgElement = container.querySelector('img');
             const loader = container.querySelector('.loader');
-            const errorDisplay = container.querySelector('.error-display');
-            const retryButton = container.querySelector('.retry-button');
 
-            if (errorDisplay) errorDisplay.remove();
-            if (retryButton) retryButton.remove();
+            container.querySelectorAll('.error-display, .retry-button').forEach(el => el.remove());
             if (loader) loader.classList.remove('hidden');
             imgElement.classList.remove('error-state', 'loaded');
-            imgElement.removeAttribute('src'); // Clear src before setting new one
-
+            imgElement.removeAttribute('src');
 
             const newImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imageData.prompt)}?width=${imageData.width}&height=${imageData.height}&seed=${imageData.seed}&model=${imageData.model}${imageData.enhance ? '&enhance=true' : ''}${NOLOGO ? '&nologo=true' : ''}&safe=false`;
 
-            imageData.error = null; // Set back to initial state before retry
-            imageData.src = newImageUrl; // Store the new URL we are trying
-            findOrUpdateImageData(index, imageData); // Update central store
+            imageData.error = null;
+            imageData.src = newImageUrl;
 
-            imgElement.src = newImageUrl; // Trigger load attempt
+            imgElement.src = newImageUrl;
         }
 
 
-        function generateImages() {
+        async function generateImages() {
+            if (sendButton.disabled) return;
+
             currentPrompt = promptInput.value.trim();
             if (!currentPrompt) {
-                alert("Please enter a prompt!");
+                alert("请输入提示词！");
+                promptInput.focus();
+                return;
+            }
+
+            const { width, height, error: dimError } = getSelectedDimensions();
+            if (dimError) {
                 return;
             }
 
             const selectedModel = modelSelect.value;
-            const { width, height } = getSelectedDimensions();
             const enhance = enhanceCheckbox.checked;
 
             sendButton.disabled = true;
-            sendButton.textContent = "Generating...";
-            imagesData = [];
+            sendButton.textContent = "生成中...";
 
-            imageDisplayArea.innerHTML = '';
-            const imageGrid = document.createElement('div');
-            imageGrid.className = 'image-grid';
-            imageDisplayArea.appendChild(imageGrid);
+            imagesData = [];
+            currentCardOrder = Array.from({ length: NUM_IMAGES }, (_, i) => i);
+
+            cardElements.forEach((card, i) => {
+                card.dataset.cardSlotIndex = i;
+                card.querySelector('.loader').classList.remove('hidden');
+                card.querySelector('img').classList.remove('loaded', 'error-state');
+                card.querySelector('img').src = '';
+                card.querySelectorAll('.error-display, .retry-button').forEach(el => el.remove());
+            });
 
             let seeds = Array.from({ length: NUM_IMAGES }, () => Math.floor(Math.random() * 100000));
 
@@ -663,97 +965,83 @@
                 const currentSeed = seeds[i];
                 const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(currentPrompt)}?width=${width}&height=${height}&seed=${currentSeed}&model=${selectedModel}${enhance ? '&enhance=true' : ''}${NOLOGO ? '&nologo=true' : ''}&safe=false`;
 
-                findOrUpdateImageData(i, {
+                const newImageData = {
                     src: imageUrl,
                     index: i,
                     error: null,
-                    prompt: currentPrompt,
-                    width: width,
-                    height: height,
-                    seed: currentSeed,
-                    model: selectedModel,
-                    enhance: enhance
-                });
-
-                const container = document.createElement('div');
-                container.className = 'image-container';
-                container.dataset.index = i;
-
-                const img = document.createElement('img');
-                img.src = imageUrl;
-                img.alt = `AI Generated Image ${i + 1}`;
-                img.dataset.index = i;
-                img.onload = () => handleImageLoad(img); // Use arrow function to ensure `this` isn't rebound
-                img.onerror = () => handleImageError(img);
-
-                const loader = document.createElement('div');
-                loader.className = 'loader';
-
-                const label = document.createElement('div');
-                label.className = 'image-label';
-                label.textContent = `Seed: ${currentSeed}`;
-
-                container.appendChild(img);
-                container.appendChild(loader);
-                container.appendChild(label);
-                imageGrid.appendChild(container);
-
-                if (img.complete) {
-                    setTimeout(() => {
-                        if (img.naturalHeight > 0) {
-                            handleImageLoad(img);
-                        } else {
-                            handleImageError(img);
-                        }
-                    }, 0);
-                }
+                    prompt: currentPrompt, width: width, height: height,
+                    seed: currentSeed, model: selectedModel, enhance: enhance
+                };
+                findOrUpdateImageData(i, newImageData);
             }
 
-            sendButton.disabled = false;
-            sendButton.textContent = "Send";
+            updateCardStackView(false);
+
+            const loadingCheckInterval = setInterval(() => {
+                const allSettled = imagesData.every(imgData => imgData.error !== null || (imgData.src && imgData.src !== '' && (imgData.error === false || imgData.error === true)));
+                if (imagesData.length === NUM_IMAGES && allSettled) {
+                     clearInterval(loadingCheckInterval);
+                     if (sendButton.disabled) {
+                         sendButton.disabled = false;
+                         sendButton.textContent = "发送";
+                     }
+                 }
+            }, 500);
+
+            setTimeout(() => {
+                 if (sendButton.disabled) {
+                     clearInterval(loadingCheckInterval);
+                     sendButton.disabled = false;
+                     sendButton.textContent = "发送";
+                     imagesData.forEach(imgData => {
+                        if (imgData.error === null) {
+                            imgData.error = true;
+                            const cardWithThisData = cardElements.find(c => parseInt(c.dataset.imageDataOriginalIndex) === imgData.index);
+                            if (cardWithThisData) {
+                                handleImageError(cardWithThisData.querySelector('img'));
+                            }
+                        }
+                     });
+                 }
+            }, 20000);
         }
 
-
         function showImage(originalIndexToShow) {
-            const imageDataIndex = imagesData.findIndex(img => img.index === originalIndexToShow);
-            if (imageDataIndex === -1) return;
+            const imageData = imagesData.find(img => img.index === originalIndexToShow);
+            if (!imageData) return;
 
-
-            currentModalIndex = imageDataIndex;
-            const imageData = imagesData[currentModalIndex];
+            const modalArrayIndex = imagesData.findIndex(img => img.index === originalIndexToShow);
+            if (modalArrayIndex === -1) return;
+            currentModalIndex = modalArrayIndex;
 
             modalImg.src = imageData.src;
             modalImg.style.display = 'block';
-
             if (imageData.error) {
-                modalImg.style.border = '3px dashed red';
-                modalImg.alt = `Preview (Load Error) - Prompt: ${imageData.prompt}`;
+                modalImg.style.border = '3px dashed var(--danger-color)';
+                modalImg.alt = `预览 (加载错误) - 提示词: ${imageData.prompt}`;
             } else {
                 modalImg.style.border = 'none';
-                modalImg.alt = `Preview - Prompt: ${imageData.prompt}`;
+                modalImg.alt = `预览 - 提示词: ${imageData.prompt}, 种子: ${imageData.seed}`;
             }
             modal.classList.add('active');
         }
 
-        function showContextMenu(event, targetIndex) {
+        function showContextMenu(event, targetOriginalIndex) {
             event.preventDefault();
             contextMenu.style.display = 'block';
-
             const menuWidth = contextMenu.offsetWidth;
             const menuHeight = contextMenu.offsetHeight;
             const windowWidth = window.innerWidth;
             const windowHeight = window.innerHeight;
             let left = event.clientX;
             let top = event.clientY;
-
             if (left + menuWidth > windowWidth - 10) left = windowWidth - menuWidth - 10;
             if (top + menuHeight > windowHeight - 10) top = windowHeight - menuHeight - 10;
             if (left < 10) left = 10;
             if (top < 10) top = 10;
-
             contextMenu.style.left = `${left}px`;
             contextMenu.style.top = `${top}px`;
-            contextMenu.dataset.targetIndex = targetIndex;
+            contextMenu.dataset.targetIndex = targetOriginalIndex;
         }
 
         function hideContextMenu() {
@@ -762,66 +1050,62 @@
                 delete contextMenu.dataset.targetIndex;
             }
         }
-
         async function copyImage(imageData) {
-            hideContextMenu(); // Hide menu first
-
+            hideContextMenu();
             if (!imageData || !imageData.src) {
-                alert("Cannot copy: Image data or src missing.");
-                console.error("Cannot copy: Image data or src missing.", imageData);
+                alert("无法复制：图像数据或源链接缺失。");
                 return;
             }
-
-            console.log("Attempting to copy image using window.api.copyImage. Fetching:", imageData.src);
+            if (imageData.error){
+                alert("无法复制加载失败的图像。");
+                return;
+            }
 
             try {
                 const response = await fetch(imageData.src);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
-                }
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const blob = await response.blob();
 
-                const arrayBuffer = await response.arrayBuffer();
-                const uint8Array = new Uint8Array(arrayBuffer);
-
-                console.log(`Fetched ${uint8Array.byteLength} bytes. Calling window.api.copyImage...`);
-
-                const success = window.api.copyImage(uint8Array);
-
-                if (success) {
-                    console.log("window.api.copyImage reported success.");
+                if (typeof window.api === 'object' && typeof window.api.copyImage === 'function') {
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const uint8Array = new Uint8Array(arrayBuffer);
+                    const success = window.api.copyImage(uint8Array);
+                    if (!success) {
+                        alert("使用应用程序API复制图像失败。");
+                    }
+                } else if (navigator.clipboard && navigator.clipboard.write) {
+                     if (!blob.type.startsWith('image/')) {
+                        throw new Error('Fetched data is not a recognized image type for clipboard.');
+                    }
+                    await navigator.clipboard.write([
+                        new ClipboardItem({ [blob.type]: blob })
+                    ]);
                 } else {
-                    console.warn("window.api.copyImage reported failure (returned false).");
-                    alert("Failed to copy image using the application API.");
+                    alert("复制到剪贴板功能在此环境中不可用。\n请尝试下载图像。");
                 }
-
-            } catch (error) {
-                console.error('Failed to fetch or process image for copying:', error);
-                let alertMessage = `Could not prepare image for copying.\nError: ${error.message}`;
-                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                    alertMessage += "\n(This might be a network issue or a CORS problem preventing image data retrieval.)";
-                }
-                alert(alertMessage);
+            } catch (err) {
+                alert(`无法复制图像。\n错误: ${err.message}\n(这可能是由于浏览器安全限制、缺少HTTPS协议或网络问题所致。)`);
             }
         }
-
-
         async function downloadImage(imageData) {
             hideContextMenu();
             if (!imageData || !imageData.src || imageData.seed === undefined || imageData.seed === null) {
-                alert("Cannot download: Image data, src, or seed missing.");
+                alert("无法下载：图像数据、源链接或种子值缺失。");
                 return;
             }
-
+             if (imageData.error){
+                alert("无法下载加载失败的图像。");
+                return;
+            }
             const seed = imageData.seed;
             let extensionMatch = imageData.src.match(/\.([a-zA-Z0-9]+)(?:[?#]|$)/);
             let extension = extensionMatch ? extensionMatch[1].toLowerCase() : 'png';
             if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
                 extension = 'png';
             }
-            const filename = `ai_${seed}.${extension}`;
-
+            const filename = `AI图像_${seed}_${imageData.width}x${imageData.height}.${extension}`;
             try {
-                const response = await fetch(imageData.src);
+                const response = await fetch(imageData.src, { mode: 'cors' });
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
                 const blob = await response.blob();
                 const blobUrl = URL.createObjectURL(blob);
@@ -833,10 +1117,9 @@
                 document.body.removeChild(link);
                 setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
             } catch (error) {
-                console.error('Download failed:', error);
-                let alertMessage = `Could not download the image.\nError: ${error.message}`;
-                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                    alertMessage += "\n(This might be a network issue or a CORS problem. Check the browser console for more details.)";
+                let alertMessage = `无法下载图像。\n错误: ${error.message}`;
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('cors')) {
+                    alertMessage += "\n(这可能是网络或CORS跨域问题。请尝试在新标签页中打开图像并保存。)";
                 }
                 alert(alertMessage);
             }
@@ -845,21 +1128,37 @@
         function attachModalListeners() {
             if (!modal || modal.dataset.listenersAttached === 'true') return;
             closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+
             prevBtn.addEventListener('click', (event) => {
                 event.stopPropagation(); if (imagesData.length === 0) return;
-                const newModalArrayIndex = (currentModalIndex - 1 + imagesData.length) % imagesData.length;
-                showImage(imagesData[newModalArrayIndex].index);
+                const navigableImages = imagesData;
+                if (navigableImages.length === 0) return;
+
+                let currentNavigableIndex = navigableImages.findIndex(img => img.index === imagesData[currentModalIndex].index);
+                if (currentNavigableIndex === -1) currentNavigableIndex = 0;
+
+                const newNavigableIndex = (currentNavigableIndex - 1 + navigableImages.length) % navigableImages.length;
+                showImage(navigableImages[newNavigableIndex].index);
             });
             nextBtn.addEventListener('click', (event) => {
                 event.stopPropagation(); if (imagesData.length === 0) return;
-                const newModalArrayIndex = (currentModalIndex + 1) % imagesData.length;
-                showImage(imagesData[newModalArrayIndex].index);
+                const navigableImages = imagesData;
+                if (navigableImages.length === 0) return;
+
+                let currentNavigableIndex = navigableImages.findIndex(img => img.index === imagesData[currentModalIndex].index);
+                if (currentNavigableIndex === -1) currentNavigableIndex = 0;
+
+                const newNavigableIndex = (currentNavigableIndex + 1) % navigableImages.length;
+                showImage(navigableImages[newNavigableIndex].index);
             });
+
             modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
             modal.dataset.listenersAttached = 'true';
         }
 
         function attachGlobalListeners() {
+            initializeCardElements();
+
             sendButton.addEventListener('click', generateImages);
             promptInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter' && !sendButton.disabled) {
@@ -867,30 +1166,38 @@
                 }
             });
 
-            imageDisplayArea.addEventListener('click', (event) => {
-                const imgElement = event.target.closest('.image-container img.loaded');
-                const retryButton = event.target.closest('.retry-button');
+            dimensionSelect.addEventListener('change', () => {
+                if (dimensionSelect.value === 'custom') {
+                    customDimensionsWrapper.style.display = 'block';
+                    if (!customWidthInput.value) customWidthInput.value = "512";
+                    if (!customHeightInput.value) customHeightInput.value = "768";
+                    customWidthInput.focus();
+                } else {
+                    customDimensionsWrapper.style.display = 'none';
+                }
+                adjustBodyPadding();
+            });
+            customWidthInput.addEventListener('change', adjustBodyPadding);
+            customHeightInput.addEventListener('change', adjustBodyPadding);
 
+
+            imageDisplayArea.addEventListener('click', (event) => {
+                const retryButton = event.target.closest('.retry-button');
                 if (retryButton) {
                     event.stopPropagation();
                     const indexToRetry = parseInt(retryButton.dataset.index, 10);
                     retryImage(indexToRetry);
-                } else if (imgElement) {
-                    const container = imgElement.closest('.image-container');
-                    const clickedDataIndex = parseInt(container.dataset.index, 10);
-                    if (imagesData.length > 0) {
-                        showImage(clickedDataIndex);
-                    }
                 }
             });
 
+
             imageDisplayArea.addEventListener('contextmenu', (event) => {
-                const container = event.target.closest('.image-container');
+                const container = event.target.closest('.image-container.is-front');
                 if (container) {
-                    const targetIndex = parseInt(container.dataset.index, 10);
-                    const imgData = imagesData.find(d => d.index === targetIndex);
-                    if (imgData && !imgData.error) {
-                        showContextMenu(event, targetIndex);
+                    const targetOriginalIndex = parseInt(container.dataset.imageDataOriginalIndex, 10);
+                    const imgData = imagesData.find(d => d.index === targetOriginalIndex);
+                    if (imgData && !imgData.error && container.querySelector('img.loaded')) {
+                        showContextMenu(event, targetOriginalIndex);
                     } else {
                         event.preventDefault();
                     }
@@ -903,42 +1210,45 @@
                 const item = event.target.closest('.context-menu-item');
                 if (item) {
                     const action = item.dataset.action;
-                    const targetIndex = parseInt(contextMenu.dataset.targetIndex, 10);
-                    const imageData = imagesData.find(d => d.index === targetIndex);
-
+                    const targetOriginalIndex = parseInt(contextMenu.dataset.targetIndex, 10);
+                    const imageData = imagesData.find(d => d.index === targetOriginalIndex);
                     if (imageData && !imageData.error) {
                         if (action === 'download') {
                             downloadImage(imageData);
                         } else if (action === 'copy') {
                             copyImage(imageData);
                         }
-                    } else {
-                        hideContextMenu();
                     }
-                } else {
                     hideContextMenu();
                 }
             });
 
-
             document.addEventListener('click', (event) => {
-                if (!contextMenu.contains(event.target) && !event.target.closest('.image-container')) {
-                    hideContextMenu();
-                }
-                if (event.button === 0 && event.target.closest('.image-container img.loaded')) {
-                    hideContextMenu();
+                if (!contextMenu.contains(event.target) && !event.target.closest('.image-container.is-front img.loaded')) {
+                     hideContextMenu();
                 }
             });
             window.addEventListener('scroll', hideContextMenu, true);
 
             document.addEventListener('keydown', (e) => {
-                if (!modal.classList.contains('active')) return;
-                switch (e.key) {
-                    case 'ArrowLeft': prevBtn.click(); break;
-                    case 'ArrowRight': nextBtn.click(); break;
-                    case 'Escape': closeBtn.click(); break;
+                if (modal.classList.contains('active')) {
+                    switch (e.key) {
+                        case 'ArrowLeft': prevBtn.click(); break;
+                        case 'ArrowRight': nextBtn.click(); break;
+                        case 'Escape': closeBtn.click(); break;
+                    }
+                } else if (e.key === 'Escape') {
+                    hideContextMenu();
                 }
             });
+
+            window.addEventListener('load', adjustBodyPadding);
+            window.addEventListener('resize', adjustBodyPadding);
+
+            if (dimensionSelect.value === 'custom') {
+                customDimensionsWrapper.style.display = 'block';
+            }
+            adjustBodyPadding();
         }
 
         attachGlobalListeners();
