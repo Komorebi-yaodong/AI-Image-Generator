@@ -659,35 +659,42 @@
             const aspectRatio = (frontImageData && frontImageData.width && frontImageData.height) ?
                                 (frontImageData.width / frontImageData.height) : (3/4);
 
-            let frontCardBaseWidth = areaWidth * 0.4;
-            let frontCardBaseHeight = areaHeight * 0.7;
-
             let frontCardWidth, frontCardHeight;
-            if (frontCardBaseWidth / aspectRatio > frontCardBaseHeight) {
-                frontCardHeight = frontCardBaseHeight;
-                frontCardWidth = frontCardHeight * aspectRatio;
-            } else {
-                frontCardWidth = frontCardBaseWidth;
+
+            // Calculate target dimensions to fill the area more, maintaining aspect ratio
+            const areaAspectRatio = areaWidth / areaHeight;
+
+            if (aspectRatio > areaAspectRatio) { // Image is wider relative to area
+                frontCardWidth = areaWidth * 0.9; // Use a larger percentage of area width
                 frontCardHeight = frontCardWidth / aspectRatio;
-            }
-            frontCardWidth = Math.max(150, Math.min(frontCardWidth, areaWidth * 0.7));
-            frontCardHeight = frontCardWidth / aspectRatio;
-            if (frontCardHeight > areaHeight * 0.85) {
-                frontCardHeight = areaHeight * 0.85;
+                if (frontCardHeight > areaHeight * 0.9) { // Ensure it doesn't exceed area height significantly
+                     frontCardHeight = areaHeight * 0.9;
+                     frontCardWidth = frontCardHeight * aspectRatio;
+                }
+            } else { // Image is taller relative to area
+                frontCardHeight = areaHeight * 0.9; // Use a larger percentage of area height
                 frontCardWidth = frontCardHeight * aspectRatio;
+                if (frontCardWidth > areaWidth * 0.9) { // Ensure it doesn't exceed area width significantly
+                    frontCardWidth = areaWidth * 0.9;
+                    frontCardHeight = frontCardWidth / aspectRatio;
+                }
             }
 
-            const backCardScale = 0.80;
+            // Ensure minimum size if needed, but primarily aim to fill
+             frontCardWidth = Math.max(150, frontCardWidth);
+             frontCardHeight = Math.max(150 / aspectRatio, frontCardHeight); // Maintain aspect ratio for minimum
+
+            const backCardScale = 0.85; // Slightly larger scale for side cards
             const backCardWidth = frontCardWidth * backCardScale;
             const backCardHeight = frontCardHeight * backCardScale;
             const backCardOpacity = 0.9;
 
-            const xOffset = frontCardWidth * 0.50;
-            const zOffset = -Math.min(areaWidth * 0.10, frontCardWidth * 0.20);
-            const rotationAngle = 40;
+            const xOffset = frontCardWidth * 0.40; // Reduced X offset
+            const zOffset = -Math.min(areaWidth * 0.08, frontCardWidth * 0.15); // Reduced Z offset
+            const rotationAngle = 30; // Reduced rotation angle
 
             const positions = [
-                { transform: `translate3d(0, 0, ${areaWidth * 0.05}px) scale(1)`, zIndex: 3, opacity: 1, width: frontCardWidth, height: frontCardHeight, isFront: true },
+                { transform: `translate3d(0, 0, ${areaWidth * 0.05}px) scale(1) translateZ(0)`, zIndex: 3, opacity: 1, width: frontCardWidth, height: frontCardHeight, isFront: true },
                 { transform: `translate3d(-${xOffset}px, 0, ${zOffset}px) rotateY(${rotationAngle}deg) scale(${backCardScale}) translateZ(0)`, zIndex: 2, opacity: backCardOpacity, width: backCardWidth,  height: backCardHeight, isFront: false },
                 { transform: `translate3d(${xOffset}px, 0, ${zOffset}px) rotateY(-${rotationAngle}deg) scale(${backCardScale}) translateZ(0)`, zIndex: 1, opacity: backCardOpacity, width: backCardWidth,  height: backCardHeight, isFront: false }
             ];
@@ -762,39 +769,44 @@
              const areaWidth = imageDisplayArea.clientWidth;
             const areaHeight = imageDisplayArea.clientHeight;
 
-            const newFrontImageData = imagesData.find(img => img.index === newOrder[0]);
+            const newFrontImageOriginalIndex = newOrder[0];
+            const newFrontImageData = imagesData.find(img => img.index === newFrontImageOriginalIndex);
             const aspectRatio = (newFrontImageData && newFrontImageData.width && newFrontImageData.height) ?
                                 (newFrontImageData.width / newFrontImageData.height) : (3/4);
 
-            let frontCardBaseWidth = areaWidth * 0.4;
-            let frontCardBaseHeight = areaHeight * 0.7;
-
             let frontCardWidth, frontCardHeight;
-            if (frontCardBaseWidth / aspectRatio > frontCardBaseHeight) {
-                frontCardHeight = frontCardBaseHeight;
-                frontCardWidth = frontCardHeight * aspectRatio;
-            } else {
-                frontCardWidth = frontCardBaseWidth;
-                frontCardHeight = frontCardWidth / aspectRatio;
-            }
-            frontCardWidth = Math.max(150, Math.min(frontCardWidth, areaWidth * 0.7));
-            frontCardHeight = frontCardWidth / aspectRatio;
-            if (frontCardHeight > areaHeight * 0.85) {
-                frontCardHeight = areaHeight * 0.85;
-                frontCardWidth = frontCardHeight * aspectRatio;
-            }
+            const areaAspectRatio = areaWidth / areaHeight;
 
-            const backCardScale = 0.80;
+            if (aspectRatio > areaAspectRatio) {
+                frontCardWidth = areaWidth * 0.9;
+                frontCardHeight = frontCardWidth / aspectRatio;
+                if (frontCardHeight > areaHeight * 0.9) {
+                     frontCardHeight = areaHeight * 0.9;
+                     frontCardWidth = frontCardHeight * aspectRatio;
+                }
+            } else {
+                frontCardHeight = areaHeight * 0.9;
+                frontCardWidth = frontCardHeight * aspectRatio;
+                if (frontCardWidth > areaWidth * 0.9) {
+                    frontCardWidth = areaWidth * 0.9;
+                    frontCardHeight = frontCardWidth / aspectRatio;
+                }
+            }
+             frontCardWidth = Math.max(150, frontCardWidth);
+             frontCardHeight = Math.max(150 / aspectRatio, frontCardHeight);
+
+
+            const backCardScale = 0.85;
             const backCardWidth = frontCardWidth * backCardScale;
             const backCardHeight = frontCardHeight * backCardScale;
             const backCardOpacity = 0.9;
 
-            const xOffset = frontCardWidth * 0.50;
-            const zOffset = -Math.min(areaWidth * 0.10, frontCardWidth * 0.20);
-            const rotationAngle = 40;
+            const xOffset = frontCardWidth * 0.40;
+            const zOffset = -Math.min(areaWidth * 0.08, frontCardWidth * 0.15);
+            const rotationAngle = 30;
 
             const positions = [
-                { transform: `translate3d(0, 0, ${areaWidth * 0.05}px) scale(1)`, zIndex: 3, opacity: 1, width: frontCardWidth, height: frontCardHeight, isFront: true },
+                { transform: `translate3d(0, 0, ${areaWidth * 0.05}px) scale(1) translateZ(0)`, zIndex: 3, opacity: 1, width: frontCardWidth, height: frontCardHeight, isFront: true },
                 { transform: `translate3d(-${xOffset}px, 0, ${zOffset}px) rotateY(${rotationAngle}deg) scale(${backCardScale}) translateZ(0)`, zIndex: 2, opacity: backCardOpacity, width: backCardWidth, height: backCardHeight, isFront: false },
                 { transform: `translate3d(${xOffset}px, 0, ${zOffset}px) rotateY(-${rotationAngle}deg) scale(${backCardScale}) translateZ(0)`, zIndex: 1, opacity: backCardOpacity, width: backCardWidth, height: backCardHeight, isFront: false }
             ];
@@ -812,13 +824,12 @@
 
                 const finalStyle = positions[newVisualSlot];
 
-                 card.style.zIndex = finalStyle.zIndex;
-
                  card.style.transition = "transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.5s ease-in-out, width 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), height 0.6s cubic-bezier(0.25, 0.8, 0.25, 1)";
-                 card.style.transform = finalStyle.transform;
-                 card.style.opacity = finalStyle.opacity;
                  card.style.width = `${finalStyle.width}px`;
                  card.style.height = `${finalStyle.height}px`;
+                 card.style.transform = finalStyle.transform;
+                 card.style.zIndex = finalStyle.zIndex;
+                 card.style.opacity = finalStyle.opacity;
                  card.classList.toggle('is-front', finalStyle.isFront);
 
                  card.dataset.cardSlotIndex = newVisualSlot;
