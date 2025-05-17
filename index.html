@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>AI Draw - Text to Image</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --input-bar-height: 110px;
+            --input-bar-height-mobile: 150px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 5px;
+        }
+
+        html {
+            scrollbar-width: thin;
+            scrollbar-color: #ccc transparent;
+            -ms-overflow-style: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            box-sizing: border-box;
+            padding-top: 20px;
+            padding-bottom: var(--input-bar-height);
+        }
+
+        #input-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #ffffff;
+            padding: 15px 20px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-sizing: border-box;
+            min-height: calc(var(--input-bar-height) - 30px);
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .input-row-1 {
+            gap: 10px;
+        }
+
+        #prompt-input {
+            flex-grow: 1;
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.95em;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        #send-button {
+            padding: 10px 25px;
+            background-color: #8a2be2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        #send-button:hover {
+            background-color: #7324b8;
+        }
+
+        #send-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .input-row-2 {
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            flex: 1 1 auto;
+            min-width: 120px;
+        }
+
+        .control-group label,
+        .enhance-label {
+            font-size: 0.8em;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .control-group select {
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.9em;
+            background-color: #fff;
+        }
+
+        .enhance-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding-top: 18px;
+            flex-shrink: 0;
+        }
+
+        #enhance-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        #image-display-area {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+            box-sizing: border-box;
+            min-height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .placeholder-text {
+            color: #aaa;
+            font-style: italic;
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            width: 100%;
+        }
+
+        .image-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .image-container {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 832 / 1216;
+            flex: 1 1 calc(33.333% - 20px);
+            max-width: calc(33.333% - 20px);
+            min-width: 200px;
+            cursor: default;
+            background-color: #e9ecef;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: pointer;
+        }
+
+        .image-container img.loaded {
+            opacity: 1;
+            position: static;
+            z-index: 1;
+        }
+
+        .image-container img.error-state {
+            display: none;
+        }
+
+        .image-label {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 9px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        .image-container:hover .image-label {
+            opacity: 1;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #8a2be2;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            animation: spin 1s linear infinite;
+            z-index: 2;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .loader.hidden {
+            display: none;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90vh;
+        }
+
+        .modal-content img {
+            display: block;
+            max-width: 100%;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            color: white;
+            font-size: 35px;
+            cursor: pointer;
+            z-index: 1001;
+            line-height: 1;
+        }
+
+        .modal-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+            z-index: 1002;
+            user-select: none;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+        }
+
+        .modal-nav:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .modal-prev {
+            left: 20px;
+        }
+
+        .modal-next {
+            right: 20px;
+        }
+
+        .error-display {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            text-align: center;
+            max-width: 80%;
+            word-wrap: break-word;
+            z-index: 2;
+            margin-top: 5px;
+        }
+
+        .retry-button {
+            background-color: #6f42c1;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            margin-top: 8px;
+            transition: background-color 0.2s;
+            z-index: 2;
+        }
+
+        .retry-button:hover {
+            background-color: #5a3d9e;
+        }
+
+        .retry-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        #custom-context-menu {
+            position: absolute;
+            display: none;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.15);
+            border-radius: 4px;
+            padding: 5px 0;
+            z-index: 1001;
+            min-width: 150px;
+        }
+
+        .context-menu-item {
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 0.9em;
+            color: #333;
+        }
+
+        .context-menu-item:hover {
+            background-color: #eee;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: var(--input-bar-height-mobile);
+            }
+
+            #input-container {
+                min-height: calc(var(--input-bar-height-mobile) - 30px);
+            }
+
+            .input-row-2 {
+                gap: 10px;
+            }
+
+            .control-group {
+                min-width: 100px;
+            }
+
+            .image-container {
+                flex-basis: calc(50% - 10px);
+                max-width: calc(50% - 10px);
+            }
+        }
+
+        @media (max-width: 480px) {
+
+            .input-row-1,
+            .input-row-2 {
+                flex-wrap: wrap;
+            }
+
+            #prompt-input {
+                flex-basis: 100%;
+                margin-bottom: 5px;
+            }
+
+            #send-button {
+                flex-basis: 100%;
+            }
+
+            .control-group {
+                flex-basis: calc(50% - 10px);
+                min-width: 0;
+            }
+
+            .enhance-group {
+                flex-basis: 100%;
+                padding-top: 5px;
+                justify-content: center;
+            }
+
+            .image-container {
+                flex-basis: calc(100% - 10px);
+                max-width: calc(100% - 10px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="image-display-area">
+        <div class="placeholder-text">
+            Enter a prompt, select your options below, and click "Send" to generate images.
+            <br>Images will appear here. Right-click an image for options.
+        </div>
+    </div>
+
+    <div class="modal">
+        <span class="modal-close">&times;</span>
+        <div class="modal-nav modal-prev">&#10094;</div>
+        <div class="modal-nav modal-next">&#10095;</div>
+        <div class="modal-content">
+            <img src="" alt="Preview">
+        </div>
+    </div>
+
+    <div id="input-container">
+        <div class="input-row input-row-1">
+            <input type="text" id="prompt-input" placeholder="Enter your image prompt...">
+            <button id="send-button">Send</button>
+        </div>
+        <div class="input-row input-row-2">
+            <div class="control-group">
+                <label for="model-select">Model:</label>
+                <select id="model-select">
+                    <option value="flux" selected>Flux</option>
+                    <option value="turbo">Turbo</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="dimension-select">Dimensions:</label>
+                <select id="dimension-select">
+                    <option value="832x1216" selected>Portrait (832x1216)</option>
+                    <option value="1024x1024">Square (1024x1024)</option>
+                    <option value="1216x832">Landscape (1216x832)</option>
+                </select>
+            </div>
+            <div class="enhance-group">
+                <input type="checkbox" id="enhance-checkbox" checked>
+                <label for="enhance-checkbox" class="enhance-label">Enhance</label>
+            </div>
+        </div>
+    </div>
+
+    <div id="custom-context-menu">
+        <div class="context-menu-item" data-action="copy">Copy Image</div>
+        <div class="context-menu-item" data-action="download">Download Image</div>
+    </div>
+
+    <script>
+        const imageDisplayArea = document.getElementById('image-display-area');
+        const promptInput = document.getElementById('prompt-input');
+        const modelSelect = document.getElementById('model-select');
+        const dimensionSelect = document.getElementById('dimension-select');
+        const enhanceCheckbox = document.getElementById('enhance-checkbox');
+        const sendButton = document.getElementById('send-button');
+        const modal = document.querySelector('.modal');
+        const modalImg = modal.querySelector('img');
+        const closeBtn = modal.querySelector('.modal-close');
+        const prevBtn = modal.querySelector('.modal-prev');
+        const nextBtn = modal.querySelector('.modal-next');
+        const contextMenu = document.getElementById('custom-context-menu');
+
+        let currentModalIndex = 0;
+        let imagesData = [];
+        let currentPrompt = '';
+        const NOLOGO = true;
+        const NUM_IMAGES = 3;
+
+        function findOrUpdateImageData(index, data) {
+            const existingIndex = imagesData.findIndex(item => item.index === index);
+            const fullData = { index, ...data };
+            if (existingIndex > -1) {
+                imagesData[existingIndex] = { ...imagesData[existingIndex], ...fullData };
+            } else {
+                imagesData.push(fullData);
+                imagesData.sort((a, b) => a.index - b.index);
+            }
+            return imagesData.find(item => item.index === index);
+        }
+
+        function getSelectedDimensions() {
+            const selectedValue = dimensionSelect.value;
+            const parts = selectedValue.split('x');
+            const width = parseInt(parts[0], 10);
+            const height = parseInt(parts[1], 10);
+            return { width, height };
+        }
+
+        function handleImageLoad(imgElement) {
+            const container = imgElement.closest('.image-container');
+            if (!container) return;
+            const loader = container.querySelector('.loader');
+            const errorDisplay = container.querySelector('.error-display');
+            const retryButton = container.querySelector('.retry-button');
+            const dataIndex = parseInt(imgElement.dataset.index, 10);
+
+            if (loader) loader.classList.add('hidden');
+            if (errorDisplay) errorDisplay.remove();
+            if (retryButton) retryButton.remove();
+
+            imgElement.classList.remove('error-state');
+            imgElement.classList.add('loaded');
+
+            const dataEntry = imagesData.find(d => d.index === dataIndex);
+            if (dataEntry) {
+                dataEntry.error = false;
+                dataEntry.src = imgElement.src;
+                findOrUpdateImageData(dataIndex, dataEntry); // Ensure update propagates
+            } else {
+                findOrUpdateImageData(dataIndex, {
+                    src: imgElement.src,
+                    error: false,
+                    index: dataIndex,
+                    prompt: currentPrompt,
+                    seed: parseInt(imgElement.src.match(/seed=(\d+)/)?.[1] || '0', 10),
+                    model: imgElement.src.match(/model=([^&]+)/)?.[1] || modelSelect.value,
+                    width: parseInt(imgElement.src.match(/width=(\d+)/)?.[1] || dimensionSelect.value.split('x')[0], 10),
+                    height: parseInt(imgElement.src.match(/height=(\d+)/)?.[1] || dimensionSelect.value.split('x')[1], 10),
+                    enhance: imgElement.src.includes('enhance=true')
+                });
+            }
+        }
+
+
+        function handleImageError(imgElement) {
+            console.error('Failed to load image:', imgElement.src);
+            const container = imgElement.closest('.image-container');
+            if (!container) return;
+            const loader = container.querySelector('.loader');
+            const dataIndex = parseInt(imgElement.dataset.index, 10);
+
+            if (loader) loader.classList.add('hidden');
+            container.querySelectorAll('.error-display, .retry-button').forEach(el => el.remove());
+
+            const errorMsg = document.createElement('div');
+            errorMsg.textContent = 'Load Error';
+            errorMsg.className = 'error-display';
+            container.appendChild(errorMsg);
+
+            const retryBtn = document.createElement('button');
+            retryBtn.textContent = 'Retry';
+            retryBtn.className = 'retry-button';
+            retryBtn.dataset.index = dataIndex;
+            container.appendChild(retryBtn);
+
+            imgElement.classList.remove('loaded');
+            imgElement.classList.add('error-state');
+
+            const dataEntry = imagesData.find(d => d.index === dataIndex);
+            if (dataEntry) {
+                dataEntry.error = true;
+                dataEntry.src = imgElement.src; // Store failed src
+                findOrUpdateImageData(dataIndex, dataEntry); // Ensure update propagates
+            } else {
+                findOrUpdateImageData(dataIndex, { src: imgElement.src, error: true, index: dataIndex });
+            }
+        }
+
+        function retryImage(index) {
+            const imageData = imagesData.find(item => item.index === index);
+            const container = imageDisplayArea.querySelector(`.image-container[data-index="${index}"]`);
+
+            if (!imageData || !container) return;
+            if (!imageData.prompt || !imageData.width || !imageData.height || imageData.seed === undefined || imageData.seed === null || !imageData.model) {
+                alert("Cannot retry: image data is incomplete.");
+                return;
+            }
+
+            const imgElement = container.querySelector('img');
+            const loader = container.querySelector('.loader');
+            const errorDisplay = container.querySelector('.error-display');
+            const retryButton = container.querySelector('.retry-button');
+
+            if (errorDisplay) errorDisplay.remove();
+            if (retryButton) retryButton.remove();
+            if (loader) loader.classList.remove('hidden');
+            imgElement.classList.remove('error-state', 'loaded');
+            imgElement.removeAttribute('src'); // Clear src before setting new one
+
+
+            const newImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imageData.prompt)}?width=${imageData.width}&height=${imageData.height}&seed=${imageData.seed}&model=${imageData.model}${imageData.enhance ? '&enhance=true' : ''}${NOLOGO ? '&nologo=true' : ''}&safe=false`;
+
+            imageData.error = null; // Set back to initial state before retry
+            imageData.src = newImageUrl; // Store the new URL we are trying
+            findOrUpdateImageData(index, imageData); // Update central store
+
+            imgElement.src = newImageUrl; // Trigger load attempt
+        }
+
+
+        function generateImages() {
+            currentPrompt = promptInput.value.trim();
+            if (!currentPrompt) {
+                alert("Please enter a prompt!");
+                return;
+            }
+
+            const selectedModel = modelSelect.value;
+            const { width, height } = getSelectedDimensions();
+            const enhance = enhanceCheckbox.checked;
+
+            sendButton.disabled = true;
+            sendButton.textContent = "Generating...";
+            imagesData = [];
+
+            imageDisplayArea.innerHTML = '';
+            const imageGrid = document.createElement('div');
+            imageGrid.className = 'image-grid';
+            imageDisplayArea.appendChild(imageGrid);
+
+            let seeds = Array.from({ length: NUM_IMAGES }, () => Math.floor(Math.random() * 100000));
+
+            for (let i = 0; i < NUM_IMAGES; i++) {
+                const currentSeed = seeds[i];
+                const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(currentPrompt)}?width=${width}&height=${height}&seed=${currentSeed}&model=${selectedModel}${enhance ? '&enhance=true' : ''}${NOLOGO ? '&nologo=true' : ''}&safe=false`;
+
+                findOrUpdateImageData(i, {
+                    src: imageUrl,
+                    index: i,
+                    error: null,
+                    prompt: currentPrompt,
+                    width: width,
+                    height: height,
+                    seed: currentSeed,
+                    model: selectedModel,
+                    enhance: enhance
+                });
+
+                const container = document.createElement('div');
+                container.className = 'image-container';
+                container.dataset.index = i;
+
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                img.alt = `AI Generated Image ${i + 1}`;
+                img.dataset.index = i;
+                img.onload = () => handleImageLoad(img); // Use arrow function to ensure `this` isn't rebound
+                img.onerror = () => handleImageError(img);
+
+                const loader = document.createElement('div');
+                loader.className = 'loader';
+
+                const label = document.createElement('div');
+                label.className = 'image-label';
+                label.textContent = `Seed: ${currentSeed}`;
+
+                container.appendChild(img);
+                container.appendChild(loader);
+                container.appendChild(label);
+                imageGrid.appendChild(container);
+
+                if (img.complete) {
+                    setTimeout(() => {
+                        if (img.naturalHeight > 0) {
+                            handleImageLoad(img);
+                        } else {
+                            handleImageError(img);
+                        }
+                    }, 0);
+                }
+            }
+
+            sendButton.disabled = false;
+            sendButton.textContent = "Send";
+        }
+
+
+        function showImage(originalIndexToShow) {
+            const imageDataIndex = imagesData.findIndex(img => img.index === originalIndexToShow);
+            if (imageDataIndex === -1) return;
+
+
+            currentModalIndex = imageDataIndex;
+            const imageData = imagesData[currentModalIndex];
+
+            modalImg.src = imageData.src;
+            modalImg.style.display = 'block';
+
+            if (imageData.error) {
+                modalImg.style.border = '3px dashed red';
+                modalImg.alt = `Preview (Load Error) - Prompt: ${imageData.prompt}`;
+            } else {
+                modalImg.style.border = 'none';
+                modalImg.alt = `Preview - Prompt: ${imageData.prompt}`;
+            }
+            modal.classList.add('active');
+        }
+
+        function showContextMenu(event, targetIndex) {
+            event.preventDefault();
+            contextMenu.style.display = 'block';
+
+            const menuWidth = contextMenu.offsetWidth;
+            const menuHeight = contextMenu.offsetHeight;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            let left = event.clientX;
+            let top = event.clientY;
+
+            if (left + menuWidth > windowWidth - 10) left = windowWidth - menuWidth - 10;
+            if (top + menuHeight > windowHeight - 10) top = windowHeight - menuHeight - 10;
+            if (left < 10) left = 10;
+            if (top < 10) top = 10;
+
+            contextMenu.style.left = `${left}px`;
+            contextMenu.style.top = `${top}px`;
+            contextMenu.dataset.targetIndex = targetIndex;
+        }
+
+        function hideContextMenu() {
+            if (contextMenu.style.display === 'block') {
+                contextMenu.style.display = 'none';
+                delete contextMenu.dataset.targetIndex;
+            }
+        }
+
+        async function copyImage(imageData) {
+            hideContextMenu(); // Hide menu first
+
+            if (!imageData || !imageData.src) {
+                alert("Cannot copy: Image data or src missing.");
+                console.error("Cannot copy: Image data or src missing.", imageData);
+                return;
+            }
+
+            console.log("Attempting to copy image using window.api.copyImage. Fetching:", imageData.src);
+
+            try {
+                const response = await fetch(imageData.src);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
+                }
+
+                const arrayBuffer = await response.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+
+                console.log(`Fetched ${uint8Array.byteLength} bytes. Calling window.api.copyImage...`);
+
+                const success = window.api.copyImage(uint8Array);
+
+                if (success) {
+                    console.log("window.api.copyImage reported success.");
+                } else {
+                    console.warn("window.api.copyImage reported failure (returned false).");
+                    alert("Failed to copy image using the application API.");
+                }
+
+            } catch (error) {
+                console.error('Failed to fetch or process image for copying:', error);
+                let alertMessage = `Could not prepare image for copying.\nError: ${error.message}`;
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    alertMessage += "\n(This might be a network issue or a CORS problem preventing image data retrieval.)";
+                }
+                alert(alertMessage);
+            }
+        }
+
+
+        async function downloadImage(imageData) {
+            hideContextMenu();
+            if (!imageData || !imageData.src || imageData.seed === undefined || imageData.seed === null) {
+                alert("Cannot download: Image data, src, or seed missing.");
+                return;
+            }
+
+            const seed = imageData.seed;
+            let extensionMatch = imageData.src.match(/\.([a-zA-Z0-9]+)(?:[?#]|$)/);
+            let extension = extensionMatch ? extensionMatch[1].toLowerCase() : 'png';
+            if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
+                extension = 'png';
+            }
+            const filename = `ai_${seed}.${extension}`;
+
+            try {
+                const response = await fetch(imageData.src);
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+            } catch (error) {
+                console.error('Download failed:', error);
+                let alertMessage = `Could not download the image.\nError: ${error.message}`;
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    alertMessage += "\n(This might be a network issue or a CORS problem. Check the browser console for more details.)";
+                }
+                alert(alertMessage);
+            }
+        }
+
+        function attachModalListeners() {
+            if (!modal || modal.dataset.listenersAttached === 'true') return;
+            closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+            prevBtn.addEventListener('click', (event) => {
+                event.stopPropagation(); if (imagesData.length === 0) return;
+                const newModalArrayIndex = (currentModalIndex - 1 + imagesData.length) % imagesData.length;
+                showImage(imagesData[newModalArrayIndex].index);
+            });
+            nextBtn.addEventListener('click', (event) => {
+                event.stopPropagation(); if (imagesData.length === 0) return;
+                const newModalArrayIndex = (currentModalIndex + 1) % imagesData.length;
+                showImage(imagesData[newModalArrayIndex].index);
+            });
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
+            modal.dataset.listenersAttached = 'true';
+        }
+
+        function attachGlobalListeners() {
+            sendButton.addEventListener('click', generateImages);
+            promptInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !sendButton.disabled) {
+                    generateImages();
+                }
+            });
+
+            imageDisplayArea.addEventListener('click', (event) => {
+                const imgElement = event.target.closest('.image-container img.loaded');
+                const retryButton = event.target.closest('.retry-button');
+
+                if (retryButton) {
+                    event.stopPropagation();
+                    const indexToRetry = parseInt(retryButton.dataset.index, 10);
+                    retryImage(indexToRetry);
+                } else if (imgElement) {
+                    const container = imgElement.closest('.image-container');
+                    const clickedDataIndex = parseInt(container.dataset.index, 10);
+                    if (imagesData.length > 0) {
+                        showImage(clickedDataIndex);
+                    }
+                }
+            });
+
+            imageDisplayArea.addEventListener('contextmenu', (event) => {
+                const container = event.target.closest('.image-container');
+                if (container) {
+                    const targetIndex = parseInt(container.dataset.index, 10);
+                    const imgData = imagesData.find(d => d.index === targetIndex);
+                    if (imgData && !imgData.error) {
+                        showContextMenu(event, targetIndex);
+                    } else {
+                        event.preventDefault();
+                    }
+                } else {
+                    hideContextMenu();
+                }
+            });
+
+            contextMenu.addEventListener('click', (event) => {
+                const item = event.target.closest('.context-menu-item');
+                if (item) {
+                    const action = item.dataset.action;
+                    const targetIndex = parseInt(contextMenu.dataset.targetIndex, 10);
+                    const imageData = imagesData.find(d => d.index === targetIndex);
+
+                    if (imageData && !imageData.error) {
+                        if (action === 'download') {
+                            downloadImage(imageData);
+                        } else if (action === 'copy') {
+                            copyImage(imageData);
+                        }
+                    } else {
+                        hideContextMenu();
+                    }
+                } else {
+                    hideContextMenu();
+                }
+            });
+
+
+            document.addEventListener('click', (event) => {
+                if (!contextMenu.contains(event.target) && !event.target.closest('.image-container')) {
+                    hideContextMenu();
+                }
+                if (event.button === 0 && event.target.closest('.image-container img.loaded')) {
+                    hideContextMenu();
+                }
+            });
+            window.addEventListener('scroll', hideContextMenu, true);
+
+            document.addEventListener('keydown', (e) => {
+                if (!modal.classList.contains('active')) return;
+                switch (e.key) {
+                    case 'ArrowLeft': prevBtn.click(); break;
+                    case 'ArrowRight': nextBtn.click(); break;
+                    case 'Escape': closeBtn.click(); break;
+                }
+            });
+        }
+
+        attachGlobalListeners();
+        attachModalListeners();
+    </script>
+</body>
+
+</html>
